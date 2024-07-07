@@ -1,26 +1,20 @@
 import os
-from tkinter import Tk
-from tkinter import filedialog
 
-from application.MkvRenamer import MkvRenamer
-from application.FolderDeleter import FolderDeleter
+from application.Config import Config
+from application.Film import Film
+
+FILM_FILE_EXTENSION = ".mkv"
 
 def main():
-    origin = ask_path()
-    destination = ask_path()
+    config = Config()
+    films = []
+    for file in os.listdir(config.getSourceFilesPath()):
+        if file.endswith(FILM_FILE_EXTENSION):
+            films.append(Film(config.getSourceFilesPath() + "/" + file))
 
-    folders = list(os.walk(origin))
-    index = 0
-    for folder in folders:
-        for file in folder[2]:
-            if file.endswith('.mkv'):
-                MkvRenamer(file, folders[0][1][index], folder[0], destination).rename()
-                index += 1
-    FolderDeleter(origin).delete()
-
-def ask_path():
-    Tk().withdraw()
-    return filedialog.askdirectory()
+    for film in films:
+        film.splitFilm(config.getDestinationFilesPath(), config.getMaxFragmentSize())
+    
 
 if __name__ == "__main__":
     main()

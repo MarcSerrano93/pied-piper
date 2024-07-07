@@ -1,0 +1,6 @@
+{
+    "source_files_path" : "E:/Users/mark_/Downloads/Plex", 
+    "destination_files_path" : "E:/Users/mark_/Downloads/Plex/PelisLab", 
+    "max_fragment_size" : 1000,
+    "telegram_film_channel_id": "telegram_channel_id"
+}
