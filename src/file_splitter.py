@@ -19,16 +19,19 @@ class FileSplitter(threading.Thread):
             os.mkdir(self.dst_parent_folder) 
 
         dst_path = os.path.join(self.dst_parent_folder, movie.tmdb_id) 
+
+        already_splitted = False
         if os.path.exists(dst_path):
-           shutil.rmtree(dst_path)
-        
-        os.makedirs(dst_path)
+            already_splitted = True
+        else:
+            os.makedirs(dst_path)
         
         file_size = os.path.getsize(movie.file_full_path)
         if (file_size > TELEGRAM_MAX_FILE_SIZE):
             zzip_path = os.path.abspath("7z.exe")
             splitCommand = f"\"{zzip_path}\" a -v{self.max_fragment_size}m \"{dst_path}/{movie.title} ({movie.year}).zip\" \"{movie.file_full_path}\""
-            process_output = subprocess.run(splitCommand)
+            if not already_splitted:
+                process_output = subprocess.run(splitCommand)
             print(f"{LogColor.pink}[FileSplitter] File: \"{os.path.basename(movie.file_full_path)}\" splitted{LogColor.endcolor}")
         else:
             shutil.move(movie.file_full_path, os.path.join(dst_path, os.path.basename(movie.file_full_path)))

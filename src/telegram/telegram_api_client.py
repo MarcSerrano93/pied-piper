@@ -2,6 +2,7 @@ import threading
 import asyncio
 import time
 import os
+import telethon
 from telethon import TelegramClient
 from telethon.tl.functions.channels import GetForumTopicsRequest
 from FastTelethonhelper import fast_upload
@@ -14,6 +15,8 @@ from .telegramConstants import API_ID, API_HASH
 API_ID = os.getenv('API_ID')
 API_HASH = os.getenv('API_HASH')
 PHONE_NUMBER = os.getenv('PHONE_NUMBER')
+
+telethon.errors.rpc_errors_re += (('FLOOD_PREMIUM_WAIT_(\\d+)', telethon.errors.FloodWaitError),)
 
 class TelegramAPIClient(threading.Thread):
     def __init__(self, telegram_film_entity_id):
@@ -50,42 +53,45 @@ class TelegramAPIClient(threading.Thread):
         if topic == "":
             print(f"{LogColor.lightred}[TelegramAPIClient] ERROR Topic doesn't exist{LogColor.endcolor}")
 
-        await client.send_file(
-            entity=supergroup,
-            file=movie.poster_path,
-            caption=movie.generate_telegram_poster_caption_old(),
-            reply_to=topic.id
-        )
+        try:
+            await client.send_file(
+                entity=supergroup,
+                file=movie.poster_path,
+                caption=movie.generate_telegram_poster_caption_old(),
+                reply_to=topic.id
+            )
 
-        file_list = []
-        for entry in os.scandir(movie.splitted_path):
-            if entry.is_file():
-                file_list.append(movie.splitted_path + "/" + entry.name)  # Solo usar el nombre del archivo
+            #if False:
+            file_list = []
+            for entry in os.scandir(movie.splitted_path):
+                if entry.is_file():
+                    file_list.append(movie.splitted_path + "/" + entry.name) 
 
-       # start_time = time.time()
-        uploaded_files=[]
-        for file in file_list:
-            uploaded_file = await fast_upload(
-                client,
-                file,
-                None,
-                progress_bar_function=self.print_progress)
-            uploaded_files.append(uploaded_file)
-        
-        # end_time = time.time()
-        # elapsed_time = end_time - start_time
-        # print("Tiempo de ejecución:", elapsed_time, "segundos")
 
-        await client.send_file(
-            entity=supergroup,
-            file=uploaded_files,
-            progress_callback=lambda current, total: self.print_progress(current, total, movie.title),
-            reply_to=topic.id
-        )
+            print(f"{LogColor.lightcyan}[TelegramAPIClient] Uploading movie: {movie.title} to Telegram {LogColor.endcolor}")
+            start_time = time.time()
+            uploaded_files=[]
+            for file in file_list:
+                uploaded_file = await fast_upload(
+                    client,
+                    file,
+                    None)
+                uploaded_files.append(uploaded_file)
+            
+            await client.send_file(
+                entity=supergroup,
+                file=uploaded_files,
+                progress_callback=lambda current, total: self.print_progress(current, total, movie.title),
+                reply_to=topic.id
+            )
+            end_time = time.time()
+            elapsed_time = end_time - start_time
 
-        print(f"{LogColor.lightcyan}[TelegramAPIClient] Movie: {movie.title} successfully uploaded to Telegram {LogColor.endcolor}")
-        with mutex:
-            movie.status = FileStatus.UPLOADED
+            print(f"{LogColor.lightcyan}[TelegramAPIClient] Movie: {movie.title} successfully uploaded to Telegram in {elapsed_time} seconds{LogColor.endcolor}")
+            with mutex:
+                movie.status = FileStatus.UPLOADED
+        except Exception as e:
+            print(f"{LogColor.lightred}Error {e}{LogColor.endcolor}")
 
     def run(self):
         global movies_vector
