@@ -6,7 +6,7 @@ from globals import movies_vector, mutex
 from constants import FileStatus, LogColor
 from utils import no_more_items
 from movie import Movie
-from .tmdb_constants import LANGUAGE, GENRES, POSTER_BASE_URL
+from .tmdb_constants import LANGUAGE, LANGUAGE_ENG, GENRES, POSTER_BASE_URL
 
 API_KEY = os.getenv('API_KEY')
 
@@ -32,9 +32,13 @@ class TmdbClient(threading.Thread):
             genres = self.__parse_genres(genres_ids)
             poster_path = film_info['poster_path']
             poster = POSTER_BASE_URL + poster_path
+            duration_min = film_info['runtime']
+
+            film_orig_info = film.info(language=LANGUAGE_ENG)
+            title_eng = film_orig_info['title']
             print(f"{LogColor.lightgreen}[TmbdClient] Info obtained for the movie {movie.tmdb_id} - {title}{LogColor.endcolor}")
             with mutex:
-                movie.set_movie_metadata(title, year, genres, poster)
+                movie.set_movie_metadata(title, title_eng, year, genres, duration_min, poster)
         except Exception as e:
             print(f"{LogColor.lightred}[TmdbClient] Error getting movie info: {e}{LogColor.endcolor}")
             return True

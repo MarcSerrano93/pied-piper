@@ -4,7 +4,7 @@ import time
 import os
 import telethon
 from telethon import TelegramClient
-from telethon.tl.functions.channels import GetForumTopicsRequest
+from telethon.tl.functions.channels import GetForumTopicsRequest, CreateForumTopicRequest
 from FastTelethonhelper import fast_upload
 from globals import mutex, movies_vector
 from utils import no_more_items
@@ -45,11 +45,35 @@ class TelegramAPIClient(threading.Thread):
 
         return existing_topics
 
+    async def create_topic(self, client, topic_name, supergroup):
+        """
+        Creates a new forum topic in the supergroup based on the folder name.
+
+        Args:
+            folder (str): The name of the folder to create a topic for.
+
+        Returns:
+            telethon.tl.types.Message: The message object representing the created topic.
+        """
+        response = await client(CreateForumTopicRequest(
+            channel=supergroup,
+            title=topic_name,
+            icon_emoji_id=5368653135101310687,
+        ))
+        print(f"{LogColor.lightcyan}[TelegramAPIClient] Topic {topic_name} created {LogColor.endcolor}")
+        return response
+
     async def upload_movie_to_telegram(self, client, supergroup, existing_topics, movie : Movie):
         topic = ""
-        if f'{movie.title[0]}' in existing_topics:
+        topic_name = f"{movie.title} ({movie.year}) {{tmdb-{movie.tmdb_id}}}"
+        if f'{topic_name}' in existing_topics:
             #print(f'Topic "{movie.title[0]}" already exists. Uploading files to this topic...')
-            topic = existing_topics[f'{movie.title[0]}']
+            topic = existing_topics[f'{topic_name}']
+        else:
+            response = await self.create_topic(client, topic_name, supergroup)
+            topic = response.updates[0]
+            if not topic:
+                print(f"{LogColor.lightred}[TelegramAPICLient] ERROR creating topic {topic_name}{LogColor.endcolor}")
         if topic == "":
             print(f"{LogColor.lightred}[TelegramAPIClient] ERROR Topic doesn't exist{LogColor.endcolor}")
 
@@ -57,11 +81,11 @@ class TelegramAPIClient(threading.Thread):
             await client.send_file(
                 entity=supergroup,
                 file=movie.poster_path,
-                caption=movie.generate_telegram_poster_caption_old(),
+                caption=movie.generate_telegram_poster_caption(),
                 reply_to=topic.id
             )
 
-            #if False:
+            # #if False:
             file_list = []
             for entry in os.scandir(movie.splitted_path):
                 if entry.is_file():
@@ -81,6 +105,7 @@ class TelegramAPIClient(threading.Thread):
             await client.send_file(
                 entity=supergroup,
                 file=uploaded_files,
+                force_document=True,
                 progress_callback=lambda current, total: self.print_progress(current, total, movie.title),
                 reply_to=topic.id
             )
@@ -92,6 +117,7 @@ class TelegramAPIClient(threading.Thread):
                 movie.status = FileStatus.UPLOADED
         except Exception as e:
             print(f"{LogColor.lightred}Error {e}{LogColor.endcolor}")
+
 
     def run(self):
         global movies_vector
@@ -116,3 +142,4 @@ class TelegramAPIClient(threading.Thread):
         asyncio.set_event_loop(loop)
         loop.run_until_complete(inner(self))
         loop.close()
+        
