@@ -21,7 +21,6 @@ class Config:
                 print(self.source_files_path)
             self.max_fragment_size = config[MAX_FRAGMENT_SIZE]
             self.telegram_film_entity_id = config[TELEGRAM_FILM_ENTITY_ID]
-            print("CONFIG")
     
     def validate(self, force_dst_creation):
         if not os.path.exists(self.source_files_path):

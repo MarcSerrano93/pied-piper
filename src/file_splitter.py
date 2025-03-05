@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import shutil
 import threading
@@ -29,7 +30,9 @@ class FileSplitter(threading.Thread):
         file_size = os.path.getsize(movie.file_full_path)
         if (file_size > TELEGRAM_MAX_FILE_SIZE):
             zzip_path = os.path.abspath("7z.exe")
-            splitCommand = f"\"{zzip_path}\" a -v{self.max_fragment_size}m \"{dst_path}/{movie.title} ({movie.year}).zip\" \"{movie.file_full_path}\""
+            regex = r"[<>:\"/\|?\*]"
+            file_title = re.sub(regex, ".", movie.title)
+            splitCommand = f"\"{zzip_path}\" a -v{self.max_fragment_size}m \"{dst_path}/{file_title} ({movie.year}).zip\" \"{movie.file_full_path}\""
             if not already_splitted:
                 process_output = subprocess.run(splitCommand)
             print(f"{LogColor.pink}[FileSplitter] File: \"{os.path.basename(movie.file_full_path)}\" splitted{LogColor.endcolor}")
